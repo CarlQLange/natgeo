@@ -1,0 +1,191 @@
+<head>
+    <title>natgeo</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css"/>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
+    <style>
+     .collapsing {
+         -webkit-transition: none;
+         transition: none;
+     }
+    </style>
+</head>
+
+<template name="baselayout">
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#">NatGeo</a>
+            </div>
+
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav navbar-left">
+                    <li> <a class="btn" href="/">Images</a> </li>
+                    <li> <a class="btn" href="stats">Stats</a> </li>
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    {{>count}}
+                    {{>export}}
+                    {{>loginButtons}}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container-fluid">
+        {{> yield}}
+    </div>
+</template>
+
+<template name="count">
+    <p class="text-center navbar-text">{{uncategorisedCount}}/{{totalCount}} to go!</p>
+</template>
+
+<template name="export">
+    {{#if currentUser}}
+        <li><a id="exportBtn" class="btn">Export a backup</a></li>
+    {{/if}}
+</template>
+
+<template name="notLoggedIn">
+    <h1>Gotta log in!</h1>
+</template>
+
+<template name="photos">
+    {{>photopane photos}}
+</template>
+
+<template name="photopane">
+    <div class="col-lg-12" id="{{_id._str}}">
+        <row>
+            <div class="col-lg-6">
+                <a href="{{display_src}}"><img class="img-thumbnail img-responsive full-width" src="{{thumbnail_src}}"/></a>
+            </div>
+            <div class="col-lg-6">
+
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="checkbox"><label><input type="checkbox" name="northamerica"> North America </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="southamerica"> South America </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="centralamerica"> Central America </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="africa"> Africa </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="europe"> Europe </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="russia"> Russia </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="asia"> Eastern Asia </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="australia"> Oceania </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="antartica"> Arctic / Antarctica </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="middleeast"> Middle East </label></div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="checkbox"><label><input type="checkbox" name="westernpeople"> Western People </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="nonwesternpeople"> Non-Western People </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="ethnicdress"> Ethnic Dress </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="westerndress"> Western Dress </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="subjectmale"> Subject is Male </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="subjectfemale"> Subject is Female </label></div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="checkbox"><label><input type="checkbox" name="urbansetting"> Urban Setting </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="ruralsetting"> Rural Setting </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="ethnicsettlement"> Ethnic Settlement </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="landscape"> Landscape </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="animalfocused"> Animal Focused </label></div>
+                        <div class="checkbox"><label><input type="checkbox" name="sport"> Outdoor Sport </label></div>
+                    </div>
+                </div>
+
+                {{>metadatafield name="Date" data=(parseDate date)}}
+
+                {{>metadatafield name="Likes" data=(likes.count)}}
+                {{>metadatafield name="Comments" data=(comments.count)}}
+
+                {{#if caption}}
+                    {{#if parsePhotographer caption}}
+                        <div class="input-group" style="width: 100%">
+                            <span class="input-group-addon" style="width: 160px">Photographer</span>
+                            <span class="pre-scrollable form-control"><a href="https://instagram.com/{{parsePhotographer caption}}">{{parsePhotographer caption}}</a></span>
+                        </div>
+                    {{/if}}
+                    {{#if parseTags caption}}
+                        {{>metadatafield name="Hashtags" data=(parseTags caption)}}
+                    {{/if}}
+                    {{>metadatafield name="Location" data=(guessCountry caption)}}
+
+                    <div class="panel panel-default">
+                        <div class="panel-body">
+                            <p id="caption_{{_id._str}}">{{caption}}</p>
+                        </div>
+                    </div>
+                {{/if}}
+            </div>
+        </row>
+    </div>
+</template>
+
+<template name="metadatafield">
+    <div class="input-group" style="width: 100%">
+        <span class="input-group-addon" style="width: 160px">{{name}}</span>
+        <span class="pre-scrollable form-control">{{data}}</span>
+    </div>
+</template>
+
+<template name="stats">
+    <div class="container-fluid">
+        <div class="col-md-4">
+            <div class="panel">
+                <h5>Count of all categories</h5>
+                {{#each categories}}
+                    {{>metadatafield name=(name) data=(count)}}
+                {{/each}}
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="panel">
+                <h5>Categories by Continent</h5>
+                <h6>North America</h6>
+                {{#each categories "northamerica"}}
+                    {{>metadatafield name=(name) data=(count)}}
+                {{/each}}
+                <h6>South America</h6>
+                {{#each categories "southamerica"}}
+                    {{>metadatafield name=(name) data=(count)}}
+                {{/each}}
+                <h6>Africa</h6>
+                {{#each categories "africa"}}
+                    {{>metadatafield name=(name) data=(count)}}
+                {{/each}}
+                <h6>Europe</h6>
+                {{#each categories "europe"}}
+                    {{>metadatafield name=(name) data=(count)}}
+                {{/each}}
+                <h6>Russia</h6>
+                {{#each categories "russia"}}
+                    {{>metadatafield name=(name) data=(count)}}
+                {{/each}}
+                <h6>Asia</h6>
+                {{#each categories "asia"}}
+                    {{>metadatafield name=(name) data=(count)}}
+                {{/each}}
+                <h6>Antartica</h6>
+                {{#each categories "antartica"}}
+                    {{>metadatafield name=(name) data=(count)}}
+                {{/each}}
+                <h6>Oceania</h6>
+                {{#each categories "australia"}}
+                    {{>metadatafield name=(name) data=(count)}}
+                {{/each}}
+                <h6>Middle East</h6>
+                {{#each categories "middleeast"}}
+                    {{>metadatafield name=(name) data=(count)}}
+                {{/each}}
+            </div>
+        </div>
+    </div>
+</template>
