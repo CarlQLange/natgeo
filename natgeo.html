@@ -138,6 +138,14 @@
 
 <template name="stats">
     <div class="container-fluid">
+        <div class="row col-md-10 col-md-offset-2">
+            <div class="panel">
+            Toggles fields:
+            {{#each categorylist}}
+            <button data-toggle="{{name}}" class="fieldnamebutton btn btn-warning btn-xs btn-toggle active" type="toggle">{{name}}</button>
+            {{/each}}
+            </div>
+        </div>
         <div class="col-md-4">
             <div class="panel">
                 <h5>Count of all categories</h5>
@@ -155,6 +163,10 @@
                 {{/each}}
                 <h6>South America</h6>
                 {{#each categories "southamerica"}}
+                    {{>metadatafield name=(name) data=(count)}}
+                {{/each}}
+                <h6>Central America</h6>
+                {{#each categories "centralamerica"}}
                     {{>metadatafield name=(name) data=(count)}}
                 {{/each}}
                 <h6>Africa</h6>

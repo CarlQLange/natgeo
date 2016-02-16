@@ -356,30 +356,40 @@ if (Meteor.isServer) {
         getUncategorisedCount: function () {
             return Photos.find({categories: {$exists: false}}).count();
         },
-        getCategoryFrequency: function (continent) {
+        getCategoryFrequency: function (continent, excl) {
+            if (!excl) excl = [];
             var categories = [];
-            if (continent) {
+            if (continent != 'all') {
                 categories = Photos.find({
                     categories: {
                         $exists: true,
-                        $in: [continent]
+                        $in: [continent],
+                        $nin: excl
                     }
                 }, {
                     fields: {
                         categories: true
                     }
                 }).fetch();
-            } else {
+            } else if (continent == 'all') {
                 categories = Photos.find({
-                    categories: {$exists: true}
+                    categories: {
+                        $exists: true,
+                        $nin: excl
+                    }
                 }, {
                     fields: {
                         categories: true
                     }
                 }).fetch();
             }
+            categories = _.pluck(categories, 'categories');
+            for (var i in categories) {
+                if (_.contains(categories[i], excl)) {
+                    categories.splice(i, 1);
+                }
+            }
             categories = _.chain(categories)
-                .pluck('categories')
                 .flatten()
                 .reduce(function(frequencies, value) {
                     frequencies[value] = frequencies[value] && frequencies[value] + 1 || 1;
@@ -506,9 +516,11 @@ if (Meteor.isClient) {
     Template.stats.created = function () {
         // ugh ugh ugh ugh ugh ugh
         var self = this;
+        self.excludeCategories = new ReactiveVar([]);
         self.categoryObj = new ReactiveVar();
         self.categoryObjNA = new ReactiveVar();
         self.categoryObjSA = new ReactiveVar();
+        self.categoryObjCA = new ReactiveVar();
         self.categoryObjAF = new ReactiveVar();
         self.categoryObjEU = new ReactiveVar();
         self.categoryObjRS = new ReactiveVar();
@@ -517,14 +529,17 @@ if (Meteor.isClient) {
         self.categoryObjAT = new ReactiveVar();
         self.categoryObjME = new ReactiveVar();
 
-        Meteor.call('getCategoryFrequency', function (err, asyncValue) {
+        Meteor.call('getCategoryFrequency', 'all', Template.instance().excludeCategories.get(), function (err, asyncValue) {
             self.categoryObj.set(asyncValue);
         });
-        Meteor.call('getCategoryFrequency', 'northamerica', function (err, asyncValue) {
+        Meteor.call('getCategoryFrequency', 'northamerica', Template.instance().excludeCategories.get(), function (err, asyncValue) {
             self.categoryObjNA.set(asyncValue);
         });
-        Meteor.call('getCategoryFrequency', 'southamerica', function (err, asyncValue) {
+        Meteor.call('getCategoryFrequency', 'southamerica', Template.instance().excludeCategories.get(), function (err, asyncValue) {
             self.categoryObjSA.set(asyncValue);
+        });
+        Meteor.call('getCategoryFrequency', 'centralamerica', Template.instance().excludeCategories.get(), function (err, asyncValue) {
+            self.categoryObjCA.set(asyncValue);
         });
         Meteor.call('getCategoryFrequency', 'africa' ,function (err, asyncValue) {
             self.categoryObjAF.set(asyncValue);
@@ -532,24 +547,38 @@ if (Meteor.isClient) {
         Meteor.call('getCategoryFrequency', 'europe' ,function (err, asyncValue) {
             self.categoryObjEU.set(asyncValue);
         });
-        Meteor.call('getCategoryFrequency', 'russia', function (err, asyncValue) {
+        Meteor.call('getCategoryFrequency', 'russia', Template.instance().excludeCategories.get(), function (err, asyncValue) {
             self.categoryObjRS.set(asyncValue);
         });
-        Meteor.call('getCategoryFrequency', 'asia', function (err, asyncValue) {
+        Meteor.call('getCategoryFrequency', 'asia', Template.instance().excludeCategories.get(), function (err, asyncValue) {
             self.categoryObjAA.set(asyncValue);
         });
-        Meteor.call('getCategoryFrequency', 'australia', function (err, asyncValue) {
+        Meteor.call('getCategoryFrequency', 'australia', Template.instance().excludeCategories.get(), function (err, asyncValue) {
             self.categoryObjAU.set(asyncValue);
         });
-        Meteor.call('getCategoryFrequency', 'antartica', function (err, asyncValue) {
+        Meteor.call('getCategoryFrequency', 'antartica', Template.instance().excludeCategories.get(), function (err, asyncValue) {
             self.categoryObjAT.set(asyncValue);
         });
-        Meteor.call('getCategoryFrequency', 'middleeast', function (err, asyncValue) {
+        Meteor.call('getCategoryFrequency', 'middleeast', Template.instance().excludeCategories.get(), function (err, asyncValue) {
             self.categoryObjME.set(asyncValue);
         });
     };
 
     Template.stats.helpers({
+        'categorylist': [
+            {name: 'westernpeople'},
+            {name: 'nonwesternpeople'},
+            {name: 'ethnicdress'},
+            {name: 'westerndress'},
+            {name: 'subjectmale'},
+            {name: 'subjectfemale'},
+            {name: 'urbansetting'},
+            {name: 'ruralsetting'},
+            {name: 'ethnicsettlement'},
+            {name: 'landscape'},
+            {name: 'animalfocused'},
+            {name: 'sport'}
+        ],
         'categories': function (continent) {
             if (!continent) {
                 return Template.instance().categoryObj.get();
@@ -557,6 +586,7 @@ if (Meteor.isClient) {
                 switch (continent) {
                 case 'northamerica': return Template.instance().categoryObjNA.get();
                 case 'southamerica': return Template.instance().categoryObjSA.get();
+                case 'centralamerica': return Template.instance().categoryObjCA.get();
                 case 'africa': return Template.instance().categoryObjAF.get();
                 case 'europe': return Template.instance().categoryObjEU.get();
                 case 'russia': return Template.instance().categoryObjRS.get();
@@ -566,6 +596,70 @@ if (Meteor.isClient) {
                 case 'middleeast': return Template.instance().categoryObjME.get();
                 }
             }
+        }
+    });
+
+    Template.stats.events({
+        'click .fieldnamebutton': function (data) {
+            $(arguments[0].currentTarget).toggleClass('active');
+
+            var nametoex = this.name;
+            var excl = Template.instance().excludeCategories.get();
+
+            if (_.contains(excl, nametoex)) {
+                excl = _.without(excl, nametoex);
+            } else {
+                excl.push(nametoex);
+            }
+
+            Template.instance().excludeCategories.set(excl);
+
+            self.categoryObj = Template.instance().categoryObj;
+            self.categoryObjNA = Template.instance().categoryObjNA;
+            self.categoryObjSA = Template.instance().categoryObjSA;
+            self.categoryObjCA = Template.instance().categoryObjCA;
+            self.categoryObjAF = Template.instance().categoryObjAF;
+            self.categoryObjEU = Template.instance().categoryObjEU;
+            self.categoryObjRS = Template.instance().categoryObjRS;
+            self.categoryObjAA = Template.instance().categoryObjAA;
+            self.categoryObjAU = Template.instance().categoryObjAU;
+            self.categoryObjAT = Template.instance().categoryObjAT;
+            self.categoryObjME = Template.instance().categoryObjME;
+
+            Meteor.call('getCategoryFrequency', 'all', Template.instance().excludeCategories.get(), function (err, asyncValue) {
+                self.categoryObj.set(asyncValue);
+            });
+            Meteor.call('getCategoryFrequency', 'northamerica', Template.instance().excludeCategories.get(), function (err, asyncValue) {
+                self.categoryObjNA.set(asyncValue);
+            });
+            Meteor.call('getCategoryFrequency', 'southamerica', Template.instance().excludeCategories.get(), function (err, asyncValue) {
+                self.categoryObjSA.set(asyncValue);
+            });
+            Meteor.call('getCategoryFrequency', 'centralamerica', Template.instance().excludeCategories.get(), function (err, asyncValue) {
+                self.categoryObjCA.set(asyncValue);
+            });
+            Meteor.call('getCategoryFrequency', 'africa' ,function (err, asyncValue) {
+                self.categoryObjAF.set(asyncValue);
+            });
+            Meteor.call('getCategoryFrequency', 'europe' ,function (err, asyncValue) {
+                self.categoryObjEU.set(asyncValue);
+            });
+            Meteor.call('getCategoryFrequency', 'russia', Template.instance().excludeCategories.get(), function (err, asyncValue) {
+                self.categoryObjRS.set(asyncValue);
+            });
+            Meteor.call('getCategoryFrequency', 'asia', Template.instance().excludeCategories.get(), function (err, asyncValue) {
+                self.categoryObjAA.set(asyncValue);
+            });
+            Meteor.call('getCategoryFrequency', 'australia', Template.instance().excludeCategories.get(), function (err, asyncValue) {
+                self.categoryObjAU.set(asyncValue);
+            });
+            Meteor.call('getCategoryFrequency', 'antartica', Template.instance().excludeCategories.get(), function (err, asyncValue) {
+                self.categoryObjAT.set(asyncValue);
+            });
+            Meteor.call('getCategoryFrequency', 'middleeast', Template.instance().excludeCategories.get(), function (err, asyncValue) {
+                self.categoryObjME.set(asyncValue);
+            });
+
         }
     });
 }
