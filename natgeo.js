@@ -638,10 +638,10 @@ if (Meteor.isClient) {
             Meteor.call('getCategoryFrequency', 'centralamerica', Template.instance().excludeCategories.get(), function (err, asyncValue) {
                 self.categoryObjCA.set(asyncValue);
             });
-            Meteor.call('getCategoryFrequency', 'africa' ,function (err, asyncValue) {
+            Meteor.call('getCategoryFrequency', 'africa', Template.instance().excludeCategories.get(), function (err, asyncValue) {
                 self.categoryObjAF.set(asyncValue);
             });
-            Meteor.call('getCategoryFrequency', 'europe' ,function (err, asyncValue) {
+            Meteor.call('getCategoryFrequency', 'europe', Template.instance().excludeCategories.get(), function (err, asyncValue) {
                 self.categoryObjEU.set(asyncValue);
             });
             Meteor.call('getCategoryFrequency', 'russia', Template.instance().excludeCategories.get(), function (err, asyncValue) {
